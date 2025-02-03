@@ -1,0 +1,90 @@
+import FreeCAD
+import Part
+import numpy as np
+
+# Main parameters
+span = 1200.0       # mm (110 cm)
+root_chord = 230.0  # mm (23 cm)
+tip_chord = 90.7   # mm (17.07 cm)
+naca_thickness = 0.14
+num_points = 100
+
+# Gull-wing parameters
+bend_start = 350    # Start transition at 350mm
+bend_end = 750      # End transition at 750mm
+root_dihedral = 0   # Degrees (root section)
+mid_dihedral = 10   # Degrees (maximum bend)
+tip_dihedral = 5    # Degrees (tip section)
+
+def create_airfoil_section(chord, thickness, y_pos, z_offset):
+    """Generate NACA 00XX airfoil with vertical offset"""
+    points = []
+    
+    # Upper surface points
+    for x_norm in np.linspace(0, 1, num_points):
+        x = x_norm * chord
+        yt = (thickness/0.2) * (0.2969*np.sqrt(x_norm) - 0.1260*x_norm -
+              0.3516*x_norm**2 + 0.2843*x_norm**3 - 0.1015*x_norm**4)
+        points.append(FreeCAD.Vector(x, y_pos, yt*chord + z_offset))
+    
+    # Lower surface points
+    for x_norm in np.linspace(1, 0, num_points)[1:]:
+        x = x_norm * chord
+        yt = (thickness/0.2) * (0.2969*np.sqrt(x_norm) - 0.1260*x_norm -
+              0.3516*x_norm**2 + 0.2843*x_norm**3 - 0.1015*x_norm**4)
+        points.append(FreeCAD.Vector(x, y_pos, -yt*chord + z_offset))
+    
+    points.append(points[0])
+    return Part.makePolygon(points)
+
+# Create document
+doc = FreeCAD.newDocument("Gull Wing")
+sections = []
+z_offsets = []
+
+# Calculate dihedral transition
+y_positions = np.linspace(0, span, 15)
+prev_z = 0
+prev_y = 0
+
+for y in y_positions:
+    if y <= bend_start:
+        angle = root_dihedral
+    elif y < bend_end:
+        t = (y - bend_start)/(bend_end - bend_start)
+        angle = root_dihedral + t*(mid_dihedral - root_dihedral)
+    else:
+        t = (y - bend_end)/(span - bend_end)
+        angle = mid_dihedral + t*(tip_dihedral - mid_dihedral)
+    
+    delta_y = y - prev_y
+    z_offset = prev_z + delta_y * np.tan(np.radians(angle))
+    chord = root_chord + (tip_chord - root_chord)*(y/span)
+    
+    # Create section
+    section = create_airfoil_section(chord, naca_thickness, y, z_offset)
+    sections.append(section)
+    z_offsets.append(z_offset)
+    
+    prev_z = z_offset
+    prev_y = y
+
+# Create loft shape
+loft = Part.makeLoft(sections, True, True, False)
+wing = doc.addObject("Part::Feature", "GullWing")
+wing.Shape = loft
+
+# Add rounded tip (optional)
+try:
+    tip_radius = naca_thickness * tip_chord * 0.8
+    tip_sphere = Part.makeSphere(tip_radius, 
+                               FreeCAD.Vector(tip_chord, span, z_offsets[-1]),
+                               FreeCAD.Vector(0, 1, 0))
+    wing.Shape = wing.Shape.fuse(tip_sphere)
+except:
+    pass
+
+# Export
+doc.recompute()
+Part.export([wing], "gull_wing.step")
+print("Gull-wing exported as gull_wing.step")
