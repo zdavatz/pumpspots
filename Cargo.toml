@@ -1,0 +1,19 @@
+[package]
+name = "pumpspots-map"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pumpspots-map"
+path = "src/main.rs"
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+imageproc = { version = "0.25", default-features = false }
+ab_glyph = "0.2"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+printpdf = { version = "0.7", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
