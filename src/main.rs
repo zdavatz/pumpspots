@@ -30,6 +30,7 @@ const SPOTS: &[(&str, f64, f64, Option<&str>)] = &[
     ("Schiffsteg Môtier", 46.946850, 7.084061, None),
     ("Hafen Sugiez",      46.966051, 7.113715, Some("https://maps.app.goo.gl/1psju5aghy4c5hyBA")),
     ("Hafen Faoug",       46.908229, 7.070834, Some("https://maps.app.goo.gl/re92N9BxHH9x4LDX9")),
+    ("Bise Noir Pump",    46.934980, 7.121314, Some("https://maps.app.goo.gl/3JPWtXwiR8gFFKb46")),
 ];
 
 const MAP_W: u32 = 2200;
